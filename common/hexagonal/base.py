@@ -1,14 +1,14 @@
 from typing import TYPE_CHECKING
 from abc import ABC, abstractmethod
 
-from hexagonal.registry import CategoryComponent, ComponentCategoryEnum
+from hexagonal.registry import CategoryAdapter, AdapterCategoryEnum
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession, AsyncEngine
 
 
-class RDB(CategoryComponent, ABC):
-    category = ComponentCategoryEnum.RelationalDB
+class RDB(CategoryAdapter, ABC):
+    category = AdapterCategoryEnum.RelationalDB
 
     @abstractmethod
     def get_session(self) -> AsyncSession: ...

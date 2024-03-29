@@ -1,6 +1,6 @@
 from __future__ import annotations
-from abc import ABC, abstractmethod
 from enum import Enum
+from typing import Type
 
 from common.hexagonal.exceptions import (
     NotExistingRelationalDatabaseSettings,
@@ -9,68 +9,64 @@ from common.hexagonal.exceptions import (
 )
 
 
-class ComponentCategoryEnum(Enum):
+class AdapterCategoryEnum(Enum):
     RelationalDB = "RelationalDB"  #  Postgres, MySQL
     NoSQLDB = "NoSQLDB"  #  Mongo, Cassandra
     QueueBroker = "QueueBroker"  #  RabbitMQ, Kaffka
     InMemoryDB = "InMemoryDB"  #  Redis, Memcached
 
 
-class CategoryСomponentRegistry:
-    """Registry for components"""
+class CategoryAdapterRegistry:
+    """Registry for adapters"""
 
     EXCEPTION_MAPPING = {
-        ComponentCategoryEnum.RelationalDB: NotExistingRelationalDatabaseSettings,
-        ComponentCategoryEnum.NoSQLDB: NotExistingNoSQLDatabaseSettings,
-        ComponentCategoryEnum.InMemoryDB: NotExistingInMemoryDatabaseSettings,
+        AdapterCategoryEnum.RelationalDB: NotExistingRelationalDatabaseSettings,
+        AdapterCategoryEnum.NoSQLDB: NotExistingNoSQLDatabaseSettings,
+        AdapterCategoryEnum.InMemoryDB: NotExistingInMemoryDatabaseSettings,
     }
 
-    components_by_category: dict = {key: None for key in ComponentCategoryEnum}
+    adapters_by_category: dict = {key: None for key in AdapterCategoryEnum}
 
     @classmethod
-    def get_exception_for_component_category(
-        cls, component_category: ComponentCategoryEnum
-    ):
+    def get_exception_for_adapter_category(cls, adapter_category: AdapterCategoryEnum):
         return (
-            cls.EXCEPTION_MAPPING[component_category]
-            if component_category in cls.EXCEPTION_MAPPING
+            cls.EXCEPTION_MAPPING[adapter_category]
+            if adapter_category in cls.EXCEPTION_MAPPING
             else Exception(
-                f"Cant get component {component_category.value} from application."
+                f"Cant get adapter {adapter_category.value} from application."
             )
         )
 
     @classmethod
-    def get_component_by_category_or_exception(
-        cls, component_category: ComponentCategoryEnum
-    ) -> CategoryComponent:
+    def get_adapter_by_category_or_exception(
+        cls, adapter_category: AdapterCategoryEnum
+    ) -> CategoryAdapter:
         """
-        Returns component. For example DB Session, Redis pool, Rabbit Queue etc
+        Returns adapter. For example DB Session, Redis pool, Rabbit Queue etc
         """
 
         # By the way Morse operator
-        if (component := cls.components_by_category[component_category]) is None:
-            exception = cls.get_exception_for_component_category(component_category)
+        if (adapter := cls.adapters_by_category[adapter_category]) is None:
+            exception = cls.get_exception_for_adapter_category(adapter_category)
             raise exception
 
-        return component
+        return adapter
 
     @classmethod
-    def register_component(cls, component: CategoryComponent):
-        if cls.components_by_category[component.category] is None:
-            cls.components_by_category[component.category] = component
+    def register_adapter(cls, adapter: Type[CategoryAdapter]):
+        if cls.adapters_by_category[adapter.category] is None:
+            cls.adapters_by_category[adapter.category] = adapter()
 
 
-class CategoryComponent:
-    category: ComponentCategoryEnum
+class CategoryAdapter:
+    category: AdapterCategoryEnum
 
     def __new__(cls, *args, **kwargs):
-        if cls is CategoryComponent:
-            raise Exception('Cannot be instantiatied')
+        if cls is CategoryAdapter:
+            raise Exception("Cannot be instantiated")
 
         return object.__new__(*args, **kwargs)
 
-    def __init__(self) -> None:
-        self.register()
-
-    def register(self) -> None:
-        CategoryComponentRegistry.register_component(self)
+    @classmethod
+    def register(cls) -> None:
+        CategoryAdapterRegistry.register_adapter(cls)
